@@ -1,4 +1,4 @@
-const fs = require('fs').promises;
+const fs = require('fs');
 const path = require('path');
 
 class TaskHandler {
@@ -6,44 +6,81 @@ class TaskHandler {
         this.filePath = path.join(__dirname, 'todos', 'tasks.json');
     }
 
-    async readTasksFile() {
-        try {
-            const data = await fs.readFile(this.filePath, 'utf8');
-            return JSON.parse(data);
-        } catch (err) {
-            return [];
-        }
+    getAllTasks() {
+        return new Promise((resolve, reject) => {
+            fs.readFile(this.filePath, 'utf8', (err, data) => {
+                if (err) {
+                    reject(err.message);
+                } else {
+                    if (data.length === 0) {
+                        resolve("No task found");
+                    } else {
+                        resolve(JSON.parse(data));
+                    }
+                }
+            });
+        });
     }
 
-    async writeTasksFile(tasks) {
-        await fs.writeFile(this.filePath, JSON.stringify(tasks, null, 2));
+    addTask(task) {
+        return new Promise((resolve, reject) => {
+            fs.readFile(this.filePath, 'utf8', (err, data) => {
+                if (err) {
+                    reject(err.message);
+                } else {
+                    let tasks = JSON.parse(data);
+                    const maxId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) : 0;
+                    tasks.push({ id: maxId + 1, task });
+                    fs.writeFile(this.filePath, JSON.stringify(tasks, null, 2), (err) => {
+                        if (err) {
+                            reject(err.message);
+                        } else {
+                            resolve(tasks);
+                        }
+                    });
+                }
+            });
+        });
     }
 
-    async getAllTasks() {
-        const tasks = await this.readTasksFile();
-        return tasks.length === 0 ? 'No task found' : tasks;
+    updateTask(taskId, newTask) {
+        return new Promise((resolve, reject) => {
+            fs.readFile(this.filePath, 'utf8', (err, data) => {
+                if (err) {
+                    reject(err.message);
+                } else {
+                    let tasks = JSON.parse(data);
+                    tasks = tasks.map(t => (t.id === taskId ? { ...t, task: newTask } : t));
+                    fs.writeFile(this.filePath, JSON.stringify(tasks, null, 2), (err) => {
+                        if (err) {
+                            reject(err.message);
+                        } else {
+                            resolve(tasks);
+                        }
+                    });
+                }
+            });
+        });
     }
 
-    async addTask(task) {
-        const tasks = await this.readTasksFile();
-        const maxId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) : 0;
-        tasks.push({ id: maxId + 1, task });
-        await this.writeTasksFile(tasks);
-        return tasks;
-    }
-
-    async updateTask(taskId, newTask) {
-        let tasks = await this.readTasksFile();
-        tasks = tasks.map(t => (t.id === taskId ? { ...t, task: newTask } : t));
-        await this.writeTasksFile(tasks);
-        return tasks;
-    }
-
-    async deleteTask(taskId) {
-        let tasks = await this.readTasksFile();
-        tasks = tasks.filter(t => t.id !== taskId);
-        await this.writeTasksFile(tasks);
-        return tasks;
+    deleteTask(taskId) {
+        return new Promise((resolve, reject) => {
+            fs.readFile(this.filePath, 'utf8', (err, data) => {
+                if (err) {
+                    reject(err.message);
+                } else {
+                    let tasks = JSON.parse(data);
+                    tasks = tasks.filter(t => t.id !== taskId);
+                    fs.writeFile(this.filePath, JSON.stringify(tasks, null, 2), (err) => {
+                        if (err) {
+                            reject(err.message);
+                        } else {
+                            resolve(tasks);
+                        }
+                    });
+                }
+            });
+        });
     }
 }
 
